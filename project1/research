@@ -1,0 +1,12 @@
+# pyspark
+data1 = sc.textFile("sfnwmrda0026001_session_1_rest_1_aal_TCs.1D").map(lambda line: line.split("\t")).map(lambda x:x[2:])
+# scala
+val data1 = sc.textFile("sfnwmrda0026001_session_1_rest_1_aal_TCs.1D").map(line => line.split("\t")).map(x => x.slice(2,x.length));
+
+# remove header
+val noheader = data1.mapPartitionsWithIndex((idx, iter) => if (idx == 0) iter.drop(1) else iter )
+
+val parsed = noheader.map(x => Vectors.dense(x.map(_.toDouble))).cache()
+import org.apache.spark.mllib.linalg._
+import org.apache.spark.rdd.RDD
+
