@@ -1,0 +1,125 @@
+optdigits <- read.csv("optdigits.tra")
+
+mydata <- apply(optdigits[,1:64], 2, scale, scale=FALSE)
+library(amap)
+# Kfit <- Kmeans(mydata,10,method = "euclidean",iter.max = 100)
+kfit <- kmeans(mydata, 10, iter.max = 100)
+
+d <- dist(mydata) # euclidean distances between the rows
+fit <- cmdscale(d,eig=TRUE, k=2) # k is the number of dim
+fit # view results
+
+# plot solution
+x <- fit$points[,1]
+y <- fit$points[,2]
+plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", main="Metric MDS")
+
+
+library(fpc)
+plotcluster(mydata, kfit$cluster)
+
+#purity <- sum(kfit$cluster == optdigits[,65])/length(optdigits[,65])
+
+ClusterPurity <- function(clusters, classes) {
+     sum(apply(table(classes, clusters), 2, max)) / length(clusters)
+ }
+
+ ClusterPurity(kfit$cluster, optdigits[,65])
+[1] 0.755102
+
+library(SNFtool)
+calNMI(kfit$cluster, optdigits[,65])
+[1] 0.7361325
+
+library(flexclust)
+randIndex(kfit$cluster, optdigits[,65], correct = TRUE)
+      ARI
+0.6080461
+
+
+1.B
+
+library(EMCluster)
+ret.em <- init.EM(mydata, nclass = 10, method = "em.EM")
+ret.Rnd <- init.EM(mydata, nclass = 10, method = "Rnd.EM", EMC = .EMC.Rnd)
+emobj <- simple.init(mydata, nclass = 10)
+ret.init <- emcluster(mydata, emobj, assign.class = TRUE)
+par(mfrow = c(2, 2))
+plotem(ret.em, x)
+plotem(ret.Rnd, x)
+plotem(ret.init, x)
+
+
+ellipsoidal, varying volume, shape, and orientation: VVV
+ellipsoidal, equal volume, shape, and orientation: EEE
+diagonal, varying volume, equal shape: VEI
+spherical, equal volume: EII
+
+library(mclust)
+msEst <- mstep(modelName = "VVV", data = optdigits[,-65],z = unmap(optdigits[,65]))
+emmodel <- estep(modelName = msEst$modelName, data = optdigits[,-65], parameters = msEst$parameters)
+# Another method using Mcluster only has one step
+emmodel <- Mclust(optdigits[,1:64], G = 2, modelNames = 'EII')
+emmodel$classification
+
+2.A
+mydata <- runif(100, min=0, max=50)
+hist(mydata,100)
+hist(mydata,25)
+
+plot(density(mydata, bw = 1))
+plot(density(mydata, bw = 4))
+
+plot(0, 0, xlim=c(0, 50), ylim=c(0, 0.2), ylab="", xlab="K=3")
+naive_estimate <- function(data, k=3){
+  xt <- numeric(ceiling(length(data)/k))
+  dx <- numeric(ceiling(length(data)/k))
+  data <- sort(data)
+  # create the xt and dx vector
+  for(i in 1:length(xt)){
+    if(i == length(xt)){
+      ind <- (i-1)*k + 1
+      xt[i] <- mean(data[ind:length(data)])
+      last = data[length(data)] - data[ind]
+      if(last == 0){
+        dx[i] <- 1
+      }
+      else{
+        dx[i] <- last
+      }
+    }else{
+      start <- (i-1)*k+1
+      end <- i*k
+      xt[i] <- mean(data[start:end])
+      dx[i] <- data[end] - data[start]
+    }
+  }
+  # Now calculate the kernels
+  x <- seq(0, 50, 0.1)
+  x_total <- numeric(length(x))
+  for(i in 1:length(x_total)){
+    for(j in 1:length(xt)){
+      x_total[i] <- x_total[i] + dnorm(x[i],mean = xt[j], sd = dx[j])/(length(data)*dx[j])
+    }
+  }
+  lines(x, x_total, col=4)
+}
+
+plot(0, 0, xlim=c(0, 50), ylim=c(0, 0.2), ylab="", xlab="z")
+
+
+2.2
+optdigits_tra <- read.csv("optdigits.tra")
+optdigits_tes <- read.csv("optdigits.tes")
+
+x1 <- runif(length(optdigits_tra[,1]), 0, 0.1)
+x2 <- runif(length(optdigits_tra[,1]), 0, 0.1)
+optdigits_tra[,1] <- x1
+optdigits_tra[,40] <- x2
+
+train <- optdigits_tra[,-65]
+test <- optdigits_tes[,-65]
+
+http://www.cs.cmu.edu/~keystroke/ksk-thesis/r/classifier-mahalanobis-knn.R
+
+https://cran.r-project.org/web/packages/lsa/lsa.pdf
